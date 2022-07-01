@@ -8,6 +8,8 @@ import math  # for rounding floats to ints
 import threading
 import tkinter as tk  # GUI window stuff
 from tkinter import ttk  # GUI labels and stuff
+import tkinter.font as tkfont  # get the width of fonts for positioning
+#from tkinter import *  # wildcard I know - it's 1 in the morning what do you bloody expect
 
 pi_ip_address = None
 ping_during_runtime = True
@@ -36,19 +38,23 @@ control = tk.Tk()
 display_width = 0
 display_height = 0
 event_name = "Gameshow"
+font_name = "Arial"
+
+need_to_update_team_gui = False
 
 
 def config_gui():
-    global display, control, display_width, display_height, event_name, questions, answers, current_question
+    global display, control, display_width, display_height, event_name, font_name, questions, answers,\
+        current_question, need_to_update_team_gui
 
     previous_question = current_question
 
     display.title("{} - Display".format(event_name))
     display.geometry("{}x{}+0+0".format(display_width, display_height))  # resolution
-    font_name = "Arial Rounded MT Bold"
     font_size = 100
     font_color = "#000000"
-
+    for i in range(0, len(team_names)):
+        create_team_gui(i)
 
     control_width = 150
     control_height = 200
@@ -72,14 +78,75 @@ def config_gui():
                 wraplength=display_width,
                 justify="center"
             ).place(x=0, y=0)
+        if need_to_update_team_gui:
+            need_to_update_team_gui = False
+            update_team_gui()
 
         display.update()
         control.update()
 
 
+def update_team_gui():
+    for i in range(0, len(team_names)):
+        create_team_gui(i)
+
+
+def create_team_gui(index):
+    global display_width, display_height, font_name, team_names, display
+
+    text_colour = None
+    if len(order) > 0:
+        if index == order[0]:
+            text_colour = "#ffffff"
+        else:
+            text_colour = "#000000"
+    else:
+        text_colour = "#ffffff"
+
+    frame_width = display_width/2
+    frame_height = display_height/4
+
+    pos_x = None
+    pos_y = None
+    if index == 0:
+        pos_x = 0
+        pos_y = display_height/2
+    elif index == 1:
+        pos_x = display_width/2
+        pos_y = display_height/2
+    elif index == 2:
+        pos_x = 0
+        pos_y = (display_height/2)+frame_height
+    elif index == 3:
+        pos_x = display_width/2
+        pos_y = (display_height/2)+frame_height
+
+    font_object = tkfont.Font(family=font_name, size=100)
+    text_width = font_object.measure(team_names[index])  # get the width of the font
+    text_pos_x = pos_x + ((frame_width - text_width)/2)  # figure out where to place it for it to be centered
+    text_height = font_object.metrics("linespace")  # get the height of the font
+    text_pos_y = pos_y + ((frame_height - text_height)/2)  # figure out where to place it for it to be centered
+
+    frame = tk.Frame(
+        display,
+        bg=team_colours[index],
+        height=frame_height,
+        width=frame_width
+    ).place(x=pos_x, y=pos_y)
+
+    lbl = tk.Label(
+        frame,
+        text=team_names[index],
+        foreground=text_colour,
+        background=team_colours[index],
+        font=(font_name, 100)
+    )
+    lbl.place(x=text_pos_x, y=text_pos_y)
+
+
 def read_data():
     global pi_ip_address, ping_during_runtime, team_names, team_colours, button_pins, led_pins, display_width, \
-        display_height, event_name, questions, answers
+        display_height, event_name, font_name, questions, answers
 
     wb = xlrd.open_workbook("./config.xls")  # open the workbook
     sheet = wb.sheet_by_index(0)  # open the first sheet in the workbook
@@ -102,6 +169,7 @@ def read_data():
     display_width = math.floor(sheet.cell_value(1, 8))  # 2I
     display_height = math.floor(sheet.cell_value(1, 9))  # 2J
     event_name = sheet.cell_value(1, 10)  # 2K
+    font_name = sheet.cell_value(1, 11)  # 2L
 
     wb = xlrd.open_workbook("./questions.xls")  # open the workbook
     sheet = wb.sheet_by_index(0)  # open the first sheet in the workbook
@@ -160,7 +228,8 @@ def read_buttons():
 
 
 def change_selected():  # change the selected team
-    global order
+    global order, need_to_update_team_gui
+    need_to_update_team_gui = True
     for index, led in enumerate(led_objects):  # for every LED
         if len(order) > 0:
             if index == order[0]:  # turn the LED on if it's the selected team, off if it's not
@@ -187,6 +256,7 @@ def clear_teams():
 def reset_teams():  # turn on all LEDs
     for led in led_objects:
         led.on()
+
 
 def disable_leds():
     for led in led_objects:
