@@ -1,0 +1,8 @@
+Windows:
+
+in run, type:
+chrome.exe --allow-file-access-from-file
+
+macOS:
+in terminal, type:
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --allow-file-access-from-files

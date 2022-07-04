@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<!--Okay, it's dam late so this code has been super bodged together. I'm also a little pissed so I expressed
+myself by writing this horrid code :) -->
+<head>
+    <title id="title">THS Academic Challenge - Display</title>
+</head>
+<style>
+    @font-face {
+        font-family: "FredokaOne";
+        src: url("./FredokaOne-Regular.ttf");
+    }
+    @font-face {
+        font-family: "Kiona";
+        src: url("./Kiona-Regular.ttf");
+    }
+    .teamBox {
+        border-radius: 50px;
+        position: absolute;
+        padding: 15px;
+        width: 500px;
+    }
+    .text {
+        font-size: 75px;
+        font-family: "FredokaOne";
+        text-align: center;
+        margin-top: 0px;
+        margin-bottom: 0px;
+        color: black;
+    }
+
+    .questionAnswer {
+        font-family: "Kiona";
+        text-align: center;
+        word-wrap: break-word;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 0px;
+        width: fit-content;
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        border-radius: 15px;
+    }
+    #questionText {
+        background-color: white;
+        margin-top: 400px;
+    }
+    #answerText {
+        background-color: aqua;
+        margin-top: 10px;
+    }
+
+    #allBoxes {
+        position: absolute;
+        bottom: 20%;
+        left: 50%;
+    }
+    #team0Div { /* top left */
+        bottom: 0;
+        right: 0;
+    }
+    #team1Div { /* top right */
+        bottom: 0;
+        left: 0;
+    }
+    #team2Div { /* bottom left */
+        top: 0;
+        right: 0;
+    }
+    #team3Div { /* bottom right */
+        top: 0;
+        left: 0;
+    }
+</style>
+<body style="background-color: darkorchid;">
+
+    <h1 class="questionAnswer" id="questionText"></h1>
+    <h2 class="questionAnswer" id="answerText">test text</h2>
+    
+    <div id="allBoxes">
+        <div class="teamBox" id="team0Div">
+            <h1 class="text" id="team0Text"></h1>
+        </div>
+        <div class="teamBox" id="team1Div">
+            <h1 class="text" id="team1Text"></h1>
+        </div>
+        <div class="teamBox" id="team2Div">
+            <h1 class="text" id="team2Text"></h1>
+        </div>
+        <div class="teamBox" id="team3Div">
+            <h1 class="text" id="team3Text"></h1>
+        </div>
+    </div>
+
+</body>
+<script>
+    initialSetup = false;
+    const que = document.getElementById("questionText");
+    const answerText = document.getElementById("answerText");
+    //answerText.style.display = "none";
+    var currentAnswer = false;
+    var questionMargin = 400;
+    var marginInterval;
+    var teamColours = [];
+
+    answerText.style.display = "none";
+
+    readData(); // initial read
+    setInterval("readData()", 100);
+
+    function readData() {
+        fetch("data.txt")
+        .then(response => response.text())
+        .then(text =>
+            actOnData(text.split("*split*"))
+        );
+    }
+
+    function actOnData(arr) {
+        if (!initialSetup) {
+            initialSetup = true;
+            document.getElementById("title").innerHTML = arr[0]; // update the title to the name of this event
+            for (i=4; i<arr.length; i+=2) { // for every team...
+                teamNum = (i-4)/2;
+                document.getElementById("team" + teamNum + "Text").innerHTML = arr[i]; // set team 1 name
+                document.getElementById("team" + teamNum + "Div").style.backgroundColor = arr[i+1]; // set team 1 colour
+                teamColours[teamColours.length] = arr[i+1]; // for later use and remove the "#"
+            }
+           return;
+        }
+
+        que.innerHTML = arr[1]; // set the question
+
+        if (arr[2] != "") {
+            answerText.innerHTML = arr[2];
+        }
+        
+        if (!currentAnswer && arr[2] != "") { // show the answer
+            answerText.innerHTML = arr[2];
+            currentAnswer = true;
+            marginInterval = setInterval("decreaseMargin()", 0.01);
+        }
+        else if (currentAnswer && arr[2] == "") { // hide the answer
+            marginInterval = setInterval("increaseMargin()", 0.01);
+            currentAnswer = false;
+        }
+
+        let teamIndex  = arr[3];
+        if (teamIndex != -1) {
+            let textElement = document.getElementById("team" + teamIndex + "Text");
+            
+            textElement.style.color = "#fff";
+            
+        }
+        resetAllSelected(teamIndex);
+
+
+    }
+
+    function resetAllSelected(except) {
+        for (i=0; i<4; i++) {
+            let boxElement = document.getElementById("team" + i + "Div");
+            if (except == -1) {
+                boxElement.style.backgroundColor = teamColours[i];
+                document.getElementById("team" + i + "Text").style.color = "#000";
+            }
+            else {
+                if (i != except) {
+                    document.getElementById("team" + i + "Text").style.color = "#000";
+                    
+                    boxElement.style.backgroundColor = LightenDarkenColor(teamColours[i], -40);
+                }
+            }
+
+
+            }
+    }
+
+  
+
+    
+    
+
+    function decreaseMargin() { // we are showing the answer
+        questionMargin--;
+        que.style.marginTop = questionMargin + "px";
+        if (questionMargin <= 375) {
+            clearInterval(marginInterval);
+            answerText.style.display = "block";
+        }
+    }
+    function increaseMargin() { // we are hiding the answer
+        questionMargin++;
+        que.style.marginTop = questionMargin + "px";
+        if (questionMargin >= 400) {
+            clearInterval(marginInterval);
+            answerText.style.display = "none";
+            answerText.innerHTML = "";
+        }
+    }
+
+    // totally plagiarised this from https://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
+    function LightenDarkenColor(col,amt) {
+    var usePound = false;
+    if ( col[0] == "#" ) {
+        col = col.slice(1);
+        usePound = true;
+    }
+
+    var num = parseInt(col,16);
+
+    var r = (num >> 16) + amt;
+
+    if ( r > 255 ) r = 255;
+    else if  (r < 0) r = 0;
+
+    var b = ((num >> 8) & 0x00FF) + amt;
+
+    if ( b > 255 ) b = 255;
+    else if  (b < 0) b = 0;
+
+    var g = (num & 0x0000FF) + amt;
+
+    if ( g > 255 ) g = 255;
+    else if  ( g < 0 ) g = 0;
+
+    return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
+}
+
+
+// TEST
+console.log(LightenDarkenColor("3F6D2A", -40));
+</script>
